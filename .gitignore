@@ -1,0 +1,13 @@
+.env
+.env.local
+node_modules/
+.next/
+out/
+coverage/
+*.log
+.DS_Store
+backups/*
+!backups/.gitkeep
+imports/rakuten/*
+!imports/rakuten/.gitkeep
+web/prisma/dev.db
