@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  marketplace   String
+  externalId    String
+  name          String
+  description   String?
+  category      String?
+  subcategory   String?
+  shopId        String?
+  shopName      String?
+  productUrl    String
+  affiliateUrl  String?
+  imageUrl      String?
+  currentPrice  Decimal? @db.Decimal(14, 2)
+  affiliateRate Decimal? @db.Decimal(8, 4)
+  reviewScore   Decimal? @db.Decimal(4, 2)
+  reviewCount   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  snapshots     ProductSnapshot[]
+  pins          Pin[]
+  links         AffiliateLink[]
+
+  @@unique([marketplace, externalId])
+  @@index([marketplace, category])
+}
+
+model ProductSnapshot {
+  id            String   @id @default(cuid())
+  productId     String
+  capturedAt    DateTime @default(now())
+  price         Decimal? @db.Decimal(14, 2)
+  affiliateRate Decimal? @db.Decimal(8, 4)
+  reviewScore   Decimal? @db.Decimal(4, 2)
+  reviewCount   Int?
+  available     Boolean?
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@index([productId, capturedAt])
+}
+
+model TrackingGroup {
+  id                String @id @default(cuid())
+  measurementName   String @unique
+  rakutenTrackingId String?
+  links             AffiliateLink[]
+}
+
+model AffiliateLink {
+  id              String @id @default(cuid())
+  productId       String
+  trackingGroupId String?
+  url             String
+  createdAt       DateTime @default(now())
+  product         Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  trackingGroup   TrackingGroup? @relation(fields: [trackingGroupId], references: [id])
+  pins            Pin[]
+}
+
+model Pin {
+  id              String   @id @default(cuid())
+  pinterestPinId  String?  @unique
+  productId       String
+  affiliateLinkId String?
+  title           String
+  description     String?
+  board           String?
+  language        String?
+  targetMarket    String?
+  publishedAt     DateTime?
+  status          String   @default("draft")
+  product         Product  @relation(fields: [productId], references: [id])
+  affiliateLink   AffiliateLink? @relation(fields: [affiliateLinkId], references: [id])
+  snapshots       PinSnapshot[]
+}
+
+model PinSnapshot {
+  id             String   @id @default(cuid())
+  pinId          String
+  capturedAt     DateTime @default(now())
+  impressions    Int      @default(0)
+  pinClicks      Int      @default(0)
+  outboundClicks Int      @default(0)
+  saves          Int      @default(0)
+  engagement     Int      @default(0)
+  pin            Pin      @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  @@index([pinId, capturedAt])
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  externalId      String?
+  marketplace     String
+  measurementName String?
+  orderedAt       DateTime?
+  salesAmount     Decimal? @db.Decimal(14, 2)
+  status          String?
+  rawData         Json?
+  createdAt       DateTime @default(now())
+  commissions     Commission[]
+  @@index([marketplace, externalId])
+}
+
+model Commission {
+  id        String   @id @default(cuid())
+  orderId   String?
+  amount    Decimal  @db.Decimal(14, 2)
+  currency  String   @default("JPY")
+  status    String?
+  createdAt DateTime @default(now())
+  order     Order?   @relation(fields: [orderId], references: [id])
+}
+
+model Experiment {
+  id        String   @id @default(cuid())
+  name      String
+  status    String   @default("draft")
+  createdAt DateTime @default(now())
+}
+
+model ImportRun {
+  id        String   @id @default(cuid())
+  source    String
+  filename  String
+  status    String
+  rowCount  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model ModelRun {
+  id           String   @id @default(cuid())
+  modelVersion String
+  trainingRows Int
+  features     Json
+  metrics      Json?
+  parameters   Json?
+  trainedAt    DateTime @default(now())
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  productId String?
+  score     Decimal? @db.Decimal(8, 4)
+  reasons   Json?
+  risks     Json?
+  createdAt DateTime @default(now())
+}
